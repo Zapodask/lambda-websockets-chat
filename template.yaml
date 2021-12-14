@@ -20,78 +20,6 @@ Parameters:
     Default: dev
 
 Resources:
-# Authorizer
-  ## Bucket com o código da função
-  authorizerBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub ${bucketName}-authorizer
-
-  ## Função IAM da lambda
-  authorizerIAMRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          -
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Policies:
-        - PolicyName: SecretsManager
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - SecretsManager:GetSecretValue
-                Resource: !Ref jwtSecretsManager
-
-  ## Função lambda
-  authorizerLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        ZipFile: |
-          import json
-          def handler(event, context):
-              return {
-                  'statusCode': 200,
-                  'body': json.dumps('Hello from Lambda!')
-              }
-      Description: Lambda function authorizer
-      FunctionName: !Sub ${projectName}-authorizer
-      Handler: index.handler
-      Role: !GetAtt authorizerIAMRole.Arn
-      Runtime: python3.9
-      Environment:
-        Variables: 
-          JWT_SECRET_ARN: !Ref jwtSecretsManager
-
-  ## Logs
-  authorizerLambdaLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${projectName}-authorizer
-      RetentionInDays: 90
-
-  ## Guardar jwt secret
-  jwtSecretsManager:
-    Type: AWS::SecretsManager::Secret
-    Properties: 
-      Description: Jwt secret
-      Name: !Sub ${projectName}-jwt-secret
-      Tags:
-        -
-          Key: JWT_SECRET
-          Value: !Ref jwtSecretKey
-
 # Lambda app
   ## Bucket com o código da função
   bucket:
@@ -143,7 +71,7 @@ Resources:
                   'body': json.dumps('Hello from Lambda!')
               }
       Description: Lambda function
-      FunctionName: !Sub ${projectName}-auth
+      FunctionName: !Sub ${projectName}
       Handler: index.handler
       Role: !GetAtt lambdaIAMRole.Arn
       Runtime: python3.9
@@ -167,15 +95,6 @@ Resources:
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: "$request.body.action"
       ApiKeySelectionExpression: $request.header.x-api-key
-
-  ## Criando authorizer
-  apiGatewayAuthorizer:
-    Type: AWS::ApiGatewayV2::Authorizer
-    Properties:
-      ApiId: !Ref apiGateway
-      Name: !Sub ${projectName}-authorizer
-      AuthorizerType: REQUEST
-      AuthorizerUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${authorizerLambdaFunction.Arn}/invocations"
 
   ## Lambda permission
   lambdaPermission:
@@ -203,8 +122,7 @@ Resources:
     Properties:
       ApiId: !Ref apiGateway
       RouteKey: $connect
-      AuthorizationType: CUSTOM
-      AuthorizerId: !Ref apiGatewayAuthorizer
+      AuthorizationType: NONE
       OperationName: ConnectRoute
       Target: !Join
         - '/'
@@ -261,18 +179,12 @@ Resources:
       TableName: !Sub ${projectName}-users
       AttributeDefinitions: 
         - 
-          AttributeName: username
-          AttributeType: S
-        -
           AttributeName: connectionId
           AttributeType: S
       KeySchema:
         -
-          AttributeName: username
-          KeyType: HASH
-        -
           AttributeName: connectionId
-          KeyType: RANGE
+          KeyType: HASH
       ProvisionedThroughput: 
         ReadCapacityUnits: 10
         WriteCapacityUnits: 10

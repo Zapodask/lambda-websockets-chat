@@ -12,7 +12,7 @@ dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.getenv("USERS_DB"))
 
 
-def lambda_handler(event, context):
+def handler(event, context):
     print(json.dumps(event))
 
     request_context = event.get("requestContext")
@@ -23,8 +23,11 @@ def lambda_handler(event, context):
         connection_id = request_context.get("connectionId")
 
         if route_key == "$connect":
-            print(f"{connection_id} está conectado")
+            data = {}
+            data["connectionId"] = connection_id
+            table.put_item(Item=data)
         elif route_key == "$disconnect":
+            table.delete_item(Key={"connectionId": connection_id})
             print(f"{connection_id} desconectou")
         elif route_key == "$default":
             pass
