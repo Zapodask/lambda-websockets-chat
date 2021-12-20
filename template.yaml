@@ -153,6 +153,42 @@ Resources:
         - - 'integrations'
           - !Ref routesIntegration
 
+  setNameRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref apiGateway
+      RouteKey: setName
+      AuthorizationType: NONE
+      OperationName: SetNameRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref routesIntegration
+
+  sendToRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref apiGateway
+      RouteKey: sendTo
+      AuthorizationType: NONE
+      OperationName: SendToRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref routesIntegration
+
+  sendToAllRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref apiGateway
+      RouteKey: sendToAll
+      AuthorizationType: NONE
+      OperationName: SendToAllRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref routesIntegration
+
   ## Deploy
   deployment:
     Type: AWS::ApiGatewayV2::Deployment
@@ -160,6 +196,9 @@ Resources:
       - connectRoute
       - disconnectRoute
       - defaultRoute
+      - setNameRoute
+      - sendToRoute
+      - sendToAllRoute
     Properties:
       ApiId: !Ref apiGateway
 
