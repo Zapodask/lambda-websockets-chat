@@ -12,7 +12,10 @@ dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.getenv("USERS_DB"))
 
 
-def sendTo(cid, data):
+def sendTo(cid, data, f=None):
+    if f != None:
+        data = {"message": data, "from": f}
+
     client.post_to_connection(ConnectionId=cid, Data=data)
 
 
@@ -44,23 +47,27 @@ def handler(event, context):
             name = body.get("name")
 
             if name:
-                try:
-                    table.update_item(
-                        Key={"connectionId": connection_id},
-                        UpdateExpression="SET #name=:n",
-                        ExpressionAttributeNames={"#name": "name"},
-                        ExpressionAttributeValues={":n": name},
-                    )
-                except Exception as e:
-                    print(e)
+                table.update_item(
+                    Key={"connectionId": connection_id},
+                    UpdateExpression="SET #name=:n",
+                    ExpressionAttributeNames={"#name": "name"},
+                    ExpressionAttributeValues={":n": name},
+                )
 
                 sendTo(connection_id, "Name setted")
             else:
                 sendTo(connection_id, "Name required")
         elif route_key == "sendTo":
-            pass
+            to_user = body.get("to_connection_id")
+            msg = body.get("message")
+
+            sendTo(to_user, msg, connection_id)
         elif route_key == "sendToAll":
-            pass
+            msg = body.get("message")
+
+            users = table.scan()
+            for user in users["Items"]:
+                sendTo(user["connectionId"], msg, connection_id)
         else:
             pass
 
