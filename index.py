@@ -3,20 +3,59 @@ import boto3
 import os
 
 
+endpoint_url = (
+    f'{os.getenv("API_ENDPOINT").replace("wss", "https", 1)}/{os.getenv("STAGE_NAME")}'
+)
+
 client = boto3.client(
     "apigatewaymanagementapi",
-    endpoint_url="https://2jab4axd2h.execute-api.us-east-1.amazonaws.com/dev",
+    endpoint_url=endpoint_url,
 )
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.getenv("USERS_DB"))
 
 
-def sendTo(cid, data, f=None):
-    if f != None:
-        data = {"message": data, "from": f}
+def getName(id):
+    user = table.get_item(Key={"connectionId": id})
 
-    client.post_to_connection(ConnectionId=cid, Data=data)
+    name = user["Item"].get("name")
+
+    return name
+
+
+def response(id, data, fid=None):
+    if fid != None:
+        name = getName(fid)
+        data = {"message": data, "from": {"name": name, "id": fid}}
+
+    ids = []
+    if isinstance(id, str):
+        ids.append(id)
+        ids.append(fid) if fid != None else ids
+    else:
+        ids = id
+
+    for i in ids:
+        client.post_to_connection(ConnectionId=i, Data=str(data))
+
+
+def checkName(id):
+    name = getName(id)
+
+    if name == None:
+        response(id, "Choose a name first")
+        return False
+    else:
+        return True
+
+
+def validate(id, value, errorMessage):
+    if value == None:
+        response(id, errorMessage)
+        return False
+    else:
+        return True
 
 
 def handler(event, context):
@@ -32,7 +71,6 @@ def handler(event, context):
         if route_key == "$connect":
             data = {}
             data["connectionId"] = connection_id
-            data["name"] = ""
 
             table.put_item(Item=data)
 
@@ -42,11 +80,18 @@ def handler(event, context):
 
             print(f"{connection_id} has disconnected")
         elif route_key == "$default":
-            pass
+            response(connection_id, "Choose a action")
         elif route_key == "setName":
             name = body.get("name")
 
             if name:
+                users = table.scan()
+
+                for user in users["Items"]:
+                    if name == user.get("name"):
+                        response(connection_id, "The name is already in use")
+                        return {"statusCode": 400}
+
                 table.update_item(
                     Key={"connectionId": connection_id},
                     UpdateExpression="SET #name=:n",
@@ -54,21 +99,32 @@ def handler(event, context):
                     ExpressionAttributeValues={":n": name},
                 )
 
-                sendTo(connection_id, "Name setted")
+                response(connection_id, "Name setted")
             else:
-                sendTo(connection_id, "Name required")
+                response(connection_id, "Name is required")
         elif route_key == "sendTo":
-            to_user = body.get("to_connection_id")
-            msg = body.get("message")
+            if checkName(connection_id):
+                to_user = body.get("to_id")
+                msg = body.get("message")
 
-            sendTo(to_user, msg, connection_id)
+                if validate(connection_id, msg, "Message is required") and validate(
+                    connection_id, to_user, "To_id is required"
+                ):
+                    response(to_user, msg, connection_id)
         elif route_key == "sendToAll":
-            msg = body.get("message")
+            if checkName(connection_id):
+                msg = body.get("message")
 
-            users = table.scan()
-            for user in users["Items"]:
-                sendTo(user["connectionId"], msg, connection_id)
+                if validate(connection_id, msg, "Message is required"):
+                    id_list = []
+
+                    users = table.scan()
+                    for user in users["Items"]:
+                        cid = user["connectionId"]
+                        id_list.append(cid) if cid not in id_list else id_list
+
+                    response(id_list, msg, connection_id)
         else:
-            pass
+            response(connection_id, "Action not allowed")
 
     return {"statusCode": 200}

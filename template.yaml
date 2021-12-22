@@ -6,10 +6,6 @@ Parameters:
     Type: String
     AllowedPattern: "[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+"
     Default: my-project
-  jwtSecretKey:
-    Type: String
-    AllowedPattern: "[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+"
-    Default: KIJUHYTR5ET4RTGY7
   bucketName:
     Type: String
     AllowedPattern: "[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+"
@@ -78,6 +74,8 @@ Resources:
       Environment:
         Variables: 
           USERS_DB: !Sub ${projectName}-users
+          API_ENDPOINT: !GetAtt apiGateway.ApiEndpoint
+          STAGE_NAME: !Ref apiGatewayStageName
 
   ## Logs
   lambdaLogGroup:
@@ -203,7 +201,7 @@ Resources:
       ApiId: !Ref apiGateway
 
   ## Estágio do deploy
-  Stage:
+  stage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       StageName: !Ref apiGatewayStageName
