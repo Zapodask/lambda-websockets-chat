@@ -139,6 +139,18 @@ Resources:
         - - 'integrations'
           - !Ref routesIntegration
 
+  defaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref apiGateway
+      RouteKey: $default
+      AuthorizationType: NONE
+      OperationName: DefaultRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref routesIntegration
+
   setNameRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -181,6 +193,7 @@ Resources:
     DependsOn:
       - connectRoute
       - disconnectRoute
+      - defaultRoute
       - setNameRoute
       - sendToRoute
       - sendToAllRoute

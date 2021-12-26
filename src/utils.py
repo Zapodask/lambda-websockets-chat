@@ -24,6 +24,8 @@ class Utils:
         if fid != None:
             name = self.getName(fid)
             data = {"message": msg, "from": {"name": name, "id": fid}}
+        else:
+            data["message"] = msg
 
         ids = []
         if isinstance(id, str):
@@ -49,14 +51,15 @@ class Utils:
         name = self.getName(id)
 
         if name == None:
-            self.response(id, "Choose a name first")
-            return False
+            rtc = "Choose a name first"
+            self.response(id, rtc)
+            return rtc
         else:
             return True
 
     def validate(self, id, value, errorMessage):
         if value == None:
             self.response(id, errorMessage)
-            return False
+            return errorMessage
         else:
             return True
