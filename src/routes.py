@@ -21,10 +21,18 @@ class Routes:
     def setName(self, body, id):
         name = body.get("name")
 
-        name_validate = self.utils.validate(id, name, "Name is required")
+        validation = self.utils.validate(
+            id,
+            [
+                {
+                    "name": "Name",
+                    "value": name,
+                }
+            ],
+        )
 
-        if name_validate != True:
-            return name_validate
+        if validation != True:
+            return validation
         else:
             users = table.scan()
 
@@ -46,18 +54,27 @@ class Routes:
 
     def sendTo(self, body, id):
         if self.utils.checkName(id):
-            to_user = body.get("to_id")
+            to_id = body.get("to_id")
             msg = body.get("message")
 
-            msg_validate = self.utils.validate(id, msg, "Message is required")
-            to_id_validate = self.utils.validate(id, msg, "To_id is required")
+            validation = self.utils.validate(
+                id,
+                [
+                    {
+                        "name": "To_id",
+                        "value": to_id,
+                    },
+                    {
+                        "name": "Message",
+                        "value": msg,
+                    },
+                ],
+            )
 
-            if msg_validate != True:
-                return msg_validate
-            if to_id_validate != True:
-                return to_id_validate
+            if validation != True:
+                return validation
             else:
-                self.utils.response(to_user, msg, id)
+                self.utils.response(to_id, msg, id)
 
                 return True
         else:
@@ -67,9 +84,18 @@ class Routes:
         if self.utils.checkName(id):
             msg = body.get("message")
 
-            msg_validate = self.utils.validate(id, msg, "Message is required")
-            if msg_validate != True:
-                return msg_validate
+            validation = self.utils.validate(
+                id,
+                [
+                    {
+                        "name": "Message",
+                        "value": msg,
+                    }
+                ],
+            )
+
+            if validation != True:
+                return validation
             else:
                 id_list = []
 
