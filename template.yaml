@@ -225,3 +225,8 @@ Resources:
       ProvisionedThroughput: 
         ReadCapacityUnits: 10
         WriteCapacityUnits: 10
+
+Outputs:
+  WebsocketUrl:
+    Description: Url to connect to server
+    Value: !Sub ${apiGateway.ApiEndpoint}/${apiGatewayStageName} 
